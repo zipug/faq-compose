@@ -1,0 +1,59 @@
+[postgres]
+host = "localhost"
+port = 5439
+user = "usr"
+password = "pwd"
+db_name = "db"
+ssl_mode = "disable"
+migrations_path = "app/migrations"
+
+[minio]
+host = "localhost"
+port = 9000
+user = "minio"
+password = "password"
+articles_bucket = "articles"
+attachments_bucket = "attachments"
+avatars_bucket = "avatars"
+use_ssl = false
+url_lifetime = "24h"
+
+[search]
+search_url = "http://localhost:5255/search"
+
+[container]
+bot_id = 1
+project_id = 1
+user_id = 3
+name = "Test project bot"
+description = "Test project bot"
+icon = ""
+
+[open_router_ai]
+token = "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"
+model = "qwen/qwen-vl-plus:free"
+url = "https://openrouter.ai/api/v1/chat/completions"
+
+[gigachat]
+grpc_address = "gigachat.devices.sberbank.ru"
+auth_url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+authorization_key = "MzIwM2RkNDEtMjJhZS00MzAyLTgzZDEtYWEzODQzZDg0ZDIxOjhkNTY2MWM0LTkxY2YtNGZiZS04NGY0LTM0NGQ2YmQ1NzM0NQ=="
+scope = "GIGACHAT_API_PERS"
+model = "GigaChat"
+# GigaChat-Max
+
+[telegram]
+# bot_token = "7672631119:AAEqdcBCTP1FEtS96JrVd1FU-Zc1JC8NLjo"
+bot_token = "7825041192:AAHhbiAv9Sove9-KpZApnLBtjLQUsrZ3E9c"
+information_url = ""
+hello_message = [
+  "*👨‍💻 Привет! Я бот поддержки*",
+  "Я могу ответить на все ваши вопросы!",
+  "*Напишите мне,* и я постараюсь помочь вам!",
+]
+error_message = "Если Вы не нашли ответа на свой вопрос или нуждаетесь в консультации наших технических специалистов, оставьте запрос для службы поддержки"
+main_image = ""
+main_buttons = [
+  { text = "✏️  Задать вопрос", data = "ask_question" },
+  { text = "🤖 Задать вопрос ИИ", data = "ask_ai" },
+]

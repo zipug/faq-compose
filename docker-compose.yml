@@ -1,0 +1,308 @@
+x-minio-common: &minio-common
+  image: quay.io/minio/minio:RELEASE.2024-12-13T22-19-12Z
+  command: server --console-address ":9001" http://minio{1...4}/data{1...2}
+  expose:
+    - "9000"
+    - "9001"
+  environment:
+    MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+    MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+  healthcheck:
+    test: ["CMD", "mc", "ready", "local"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+
+services:
+  server:
+    container_name: dashboard
+    image: gedjer/dashboard-service:1
+    labels:
+      co.elastic.logs/enabled: true
+      co.elastic.logs/json.overwrite_keys: true
+      co.elastic.logs/json.add_error_key: true
+      co.elastic.logs/json.expand_keys: true
+    volumes:
+      - ./dashboard.toml:/app/configs/config.toml:ro
+      - ./migrations:/app/migrations
+    environment:
+      CONFIG_PATH: ${CONFIG_PATH}
+      SERVER_HOST: ${SERVER_HOST}
+      SERVER_PORT: ${SERVER_PORT}
+      DEFAULT_API: ${DEFAULT_API}
+      READ_TIMEOUT: ${READ_TIMEOUT}
+      WRITE_TIMEOUT: ${WRITE_TIMEOUT}
+      IDLE_TIMEOUT: ${IDLE_TIMEOUT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE}
+      POSTGRES_MIGRATIONS_PATH: ${POSTGRES_MIGRATIONS_PATH}
+      JWT_SECREY_KEY: ${JWT_SECREY_KEY}
+      ACCESS_TOKEN_EXP: ${ACCESS_TOKEN_EXP}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_USER: ${REDIS_USER}
+      REDIS_USER_PASSWORD: ${REDIS_USER_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      OTP_MAX: ${OTP_MAX}
+      OTP_EXPIRATION_TIME: ${OTP_EXPIRATION_TIME}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ARTICLES_BUCKET: ${MINIO_ARTICLES_BUCKET}
+      MINIO_ATTACHMENTS_BUCKET: ${MINIO_ATTACHMENTS_BUCKET}
+      MINIO_AVATARS_BUCKET: ${MINIO_AVATARS_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_URL_LIFETIME: ${MINIO_URL_LIFETIME}
+      MAX_PARALLEL_WORKERS: ${MAX_PARALLEL_WORKERS}
+      FRONT_END_URL: ${FRONT_END_URL}
+    ports:
+      - "4400:4400"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    network_mode: host
+
+  resources:
+    container_name: resources
+    image: gedjer/resources:1
+    environment:
+      RESOURCES_HOST: ${RESOURCES_HOST}
+      RESOURCES_PORT: ${RESOURCES_PORT}
+      RESOURCES_UPTIME: ${RESOURCES_UPTIME}
+      RESOURCES_ALLOWED_ORIGINS: ${RESOURCES_ALLOWED_ORIGINS}
+    ports:
+      - "${RESOURCES_PORT:-30080}:${RESOURCES_PORT:-30080}"
+    restart: unless-stopped
+    network_mode: host
+
+  frontend:
+    container_name: frontend
+    image: gedjer/faq-frontend:2
+    environment:
+      VITE_APP_BASE_URL: ${BASE_URL}
+      VITE_RESOURCES_WS_URL: ${RESOURCES_WS_URL}
+    ports:
+      - "8084:80"
+    restart: unless-stopped
+    depends_on:
+      - server
+      - postgres
+
+  mail:
+    container_name: mail
+    image: gedjer/mail-service:1
+    volumes:
+      - ./mail.toml:/app/configs/config.toml:ro
+      - ./templates:/app/templates
+    environment:
+      CONFIG_PATH: ${CONFIG_PATH}
+      SERVER_URL: ${SERVER_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+    ports:
+      - "4450:4450"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    network_mode: host
+
+  executor:
+    container_name: executor
+    image: gedjer/docker-exec:1 
+    volumes:
+      - ./exec.toml:/app/configs/config.toml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CONFIG_PATH: ${CONFIG_PATH}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE}
+      POSTGRES_MIGRATIONS_PATH: ${POSTGRES_MIGRATIONS_PATH}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_USER: ${REDIS_USER}
+      REDIS_USER_PASSWORD: ${REDIS_USER_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ARTICLES_BUCKET: ${MINIO_ARTICLES_BUCKET}
+      MINIO_ATTACHMENTS_BUCKET: ${MINIO_ATTACHMENTS_BUCKET}
+      MINIO_AVATARS_BUCKET: ${MINIO_AVATARS_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_URL_LIFETIME: ${MINIO_URL_LIFETIME}
+      TELEGRAM_IMAGE_NAME: ${TELEGRAM_IMAGE_NAME}
+      TELEGRAM_TIMEOUT: ${TELEGRAM_TIMEOUT}
+      SEARCH_URL: ${SEARCH_URL}
+      OPEN_ROUTER_API_TOKEN: ${OPEN_ROUTER_API_TOKEN}
+      OPEN_ROUTER_API_MODEL: ${OPEN_ROUTER_API_MODEL}
+      OPEN_ROUTER_API_URL: ${OPEN_ROUTER_API_URL}
+    ports:
+      - "4460:4460"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    network_mode: host
+
+  search:
+    container_name: search
+    image: gedjer/search-service:3
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD}
+    ports:
+      - "5255:5255"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    network_mode: host
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usr -d db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
+    env_file:
+      - .env
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/bitnami/redis/data
+
+  elasticsearch:
+    container_name: elastic
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.2.0"
+    environment:
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "discovery.type=single-node"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  #kibana:
+  # container_name: kibana
+  # image: "docker.elastic.co/kibana/kibana:7.2.0"
+  # ports:
+  #   - "5601:5601"
+
+  #filebeat:
+  #  container_name: filebeat
+  #  image: "docker.elastic.co/beats/filebeat:7.2.0"
+  # user: root
+  # volumes:
+  #   - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+  #   - /var/lib/docker:/var/lib/docker:ro
+  #   - /var/run/docker.sock:/var/run/docker.sock
+
+  minio1:
+    <<: *minio-common
+    hostname: minio1
+    volumes:
+      - data1-1:/data1
+      - data2-2:/data2
+
+  minio2:
+    <<: *minio-common
+    hostname: minio2
+    volumes:
+      - data2-1:/data1
+      - data2-2:/data2
+
+  minio3:
+    <<: *minio-common
+    hostname: minio3
+    volumes:
+      - data3-1:/data1
+      - data3-2:/data2
+
+  minio4:
+    <<: *minio-common
+    hostname: minio4
+    volumes:
+      - data4-1:/data1
+      - data4-2:/data2
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    depends_on:
+      - minio1
+      - minio2
+      - minio3
+      - minio4
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:
+  data1-1:
+  data1-2:
+  data2-1:
+  data2-2:
+  data3-1:
+  data3-2:
+  data4-1:
+  data4-2:
