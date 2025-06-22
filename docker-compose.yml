@@ -84,7 +84,7 @@ services:
 
   frontend:
     container_name: frontend
-    image: gedjer/faq-frontend:2
+    image: gedjer/faq-frontend:3
     #image: gedjer/faq-frontend:prod
     environment:
       VITE_APP_BASE_URL: ${BASE_URL}
@@ -166,7 +166,7 @@ services:
 
   search:
     container_name: search
-    image: gedjer/search-service:12
+    image: gedjer/search-service:13
     environment:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
